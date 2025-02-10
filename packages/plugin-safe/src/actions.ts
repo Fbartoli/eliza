@@ -10,6 +10,7 @@ import {
     generateObject,
 } from "@elizaos/core";
 import type { SafeClient, SendTransactionProps } from "@safe-global/sdk-starter-kit";
+import { z } from "zod";
 
 type GetSafeActionsParams = {
     getClient: () => Promise<SafeClient>;
@@ -18,14 +19,17 @@ type GetSafeActionsParams = {
 type Tool = {
     name: string;
     description: string;
+    schema: z.ZodSchema;
     call: (client: SafeClient, parameters: unknown) => Promise<unknown>;
 };
 
-// Add this near the top of the file with other type definitions
-interface SendNativeCurrencyParams {
-    to: string;
-    value: string;
-}
+// Replace the interface with a Zod schema
+const sendNativeCurrencySchema = z.object({
+    to: z.string().startsWith("0x"),  // Ensures it's a valid hex address
+    value: z.string(),  // For the amount in wei
+});
+
+type SendNativeCurrencyParams = z.infer<typeof sendNativeCurrencySchema>;
 
 /**
  * Get all AgentKit actions
@@ -100,25 +104,15 @@ export const tools = [
     {
         name: "SEND_NATIVE_CURRENCY",
         description: "Deploy a new Safe",
-        call: async (client: SafeClient, parameters: unknown) => {
-            if (typeof parameters !== "object" || parameters === null) {
-                throw new Error("Parameters must be an object");
-            }
-
-            // Type guard function
-            function isSendNativeCurrencyParams(params: unknown): params is SendNativeCurrencyParams {
-                const p = params as Record<string, unknown>;
-                return typeof p.to === 'string' && typeof p.value === 'string';
-            }
-
-            if (!isSendNativeCurrencyParams(parameters)) {
-                throw new Error("Invalid parameters: 'to' and 'value' must be strings");
-            }
+        schema: sendNativeCurrencySchema, // Add schema to the tool definition
+        call: async (client: SafeClient, parameters: SendNativeCurrencyParams) => {
+            // Parse and validate the parameters
+            const validParams = sendNativeCurrencySchema.parse(parameters);
             
             const tx: SendTransactionProps = {
                 transactions: [{
-                    to: parameters.to,
-                    value: parameters.value,
+                    to: validParams.to,
+                    value: validParams.value,
                     data: "0x",
                 }]
             }
