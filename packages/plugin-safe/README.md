@@ -1,114 +1,89 @@
-# @elizaos/plugin-safe
+# Safe Plugin for AgentKit
 
-Safe plugin for Eliza that enables interaction with Safe wallet.
+This plugin integrates [Safe](https://safe.global/) functionality into AgentKit, allowing agents to interact with Safe wallets for secure transaction management.
+
+## Features
+
+- Create and manage Safe wallets
+- Send native currency transactions
+- Send ERC20 token transfers
+- Execute arbitrary contract calls
 
 ## Setup
 
-1. Install dependencies:
-
+1. Install the package:
 ```bash
-pnpm install
+pnpm add @elizaos/plugin-safe
 ```
 
-2. Configure environment variables:
-
-
-3. Add the plugin to your character configuration:
-
-```json
-{
-    "plugins": ["@elizaos/plugin-safe"],
-    "settings": {
-        "WALLET_PRIVATE_KEY": "private_key_of_your_agent",
-        "RPC_URL": "rpc_url_of_your_network"
-    }
-}
+2. Set required environment variables:
+```bash
+WALLET_PRIVATE_KEY=your_private_key
+RPC_URL=your_ethereum_rpc_url
 ```
 
-## Available Tools
+## Usage
 
-The plugin provides access to the following CDP AgentKit tools:
+### Plugin Registration
 
--   `GET_WALLET_DETAILS`: Get wallet information
--   `DEPLOY_NFT`: Deploy a new NFT collection
--   `DEPLOY_TOKEN`: Deploy a new token
--   `GET_BALANCE`: Check token or NFT balance
--   `MINT_NFT`: Mint NFTs from a collection
--   `REGISTER_BASENAME`: Register a basename for NFTs
--   `REQUEST_FAUCET_FUNDS`: Request testnet funds
--   `TRADE`: Execute trades
--   `TRANSFER`: Transfer tokens or NFTs
--   `WOW_BUY_TOKEN`: Buy WOW tokens
--   `WOW_SELL_TOKEN`: Sell WOW tokens
--   `WOW_CREATE_TOKEN`: Create new WOW tokens
+```typescript
+import { agentKitPlugin as safePlugin } from "@elizaos/plugin-safe";
 
-## Usage Examples
-
-1. Get wallet details:
-
-```
-Can you show me my wallet details?
+// Register the plugin with your agent
+agent.registerPlugin(safePlugin);
 ```
 
-2. Deploy an NFT collection:
+### Available Actions
 
-```
-Deploy a new NFT collection called "Music NFTs" with symbol "MUSIC"
-```
+1. **SEND_NATIVE_CURRENCY**
+   - Send native currency (ETH) to an address
+   - Parameters:
+     - `to`: Recipient address (hex)
+     - `value`: Amount in wei (string)
 
-3. Create a token:
+2. **SEND_ERC20**
+   - Send ERC20 tokens
+   - Parameters:
+     - `to`: Recipient address (hex)
+     - `value`: Amount in wei (string)
+     - `erc20Address`: Token contract address (hex)
 
-```
-Create a new WOW token called "Artist Token" with symbol "ART"
-```
+3. **CALL_CONTRACT**
+   - Execute arbitrary contract calls
+   - Parameters:
+     - `to`: Contract address (hex)
+     - `data`: Encoded function call data (hex)
+     - `value`: Amount of native currency to send (string)
 
-4. Check balance:
+### Wallet Provider
 
-```
-What's my current balance?
-```
+The plugin includes a wallet provider that exposes the Safe wallet address. This can be accessed through the agent's provider system.
+
+## Error Handling
+
+The plugin includes comprehensive error handling for:
+- Missing environment variables
+- Safe wallet creation failures
+- Transaction execution errors
 
 ## Development
 
-1. Build the plugin:
-
 ```bash
+# Install dependencies
+pnpm install
+
+# Run tests
+pnpm test
+
+# Build the package
 pnpm build
-```
-
-2. Run in development mode:
-
-```bash
-pnpm dev
 ```
 
 ## Dependencies
 
--   @elizaos/core
--   @safe-global/sdk-starter-kit
--   @langchain/core
-
-## Network Support
-
-The plugin supports the following networks:
-
--   Base Sepolia (default)
--   Base Mainnet
-
-<!-- Configure the network using the `CDP_AGENT_KIT_NETWORK` environment variable. -->
-
-## Troubleshooting
-
-1. If tools are not being triggered:
-
-    - Verify CDP API key configuration
-    - Check network settings
-    - Ensure character configuration includes the plugin
-
-2. Common errors:
-    - "Cannot find package": Make sure dependencies are installed
-    - "API key not found": Check environment variables
-    - "Network error": Verify network configuration
+- @elizaos/core
+- @safe-global/sdk-starter-kit
+- @langchain/core
 
 ## License
 

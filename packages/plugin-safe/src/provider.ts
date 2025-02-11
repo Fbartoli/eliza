@@ -9,7 +9,6 @@ export async function getClient(): Promise<SafeClient> {
     // Validate required environment variables first
     const walletKey = process.env.WALLET_PRIVATE_KEY;
     const rpcUrl = process.env.RPC_URL;
-
     if (!walletKey) {
         throw new Error("Missing required wallet private key. Please set WALLET_PRIVATE_KEY environment variable.");
     }

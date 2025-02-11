@@ -9,7 +9,9 @@ import {
     composeContext,
     generateObject,
 } from "@elizaos/core";
-import type { SafeClient, SendTransactionProps } from "@safe-global/sdk-starter-kit";
+import type { SafeClient, SafeClientResult, SendTransactionProps } from "@safe-global/sdk-starter-kit";
+import { erc20Abi } from "viem";
+import { encodeFunctionData } from "viem";
 import { z } from "zod";
 
 type GetSafeActionsParams = {
@@ -30,7 +32,21 @@ const sendNativeCurrencySchema = z.object({
 });
 
 type SendNativeCurrencyParams = z.infer<typeof sendNativeCurrencySchema>;
+const sendErc20Schema = z.object({
+    to: z.string().startsWith("0x"),  // Ensures it's a valid hex address
+    value: z.string(),  // For the amount in wei
+    erc20Address: z.string().startsWith("0x"),  // Ensures it's a valid hex address
+});
 
+const callContractSchema = z.object({
+    to: z.string().startsWith("0x"),  // Ensures it's a valid hex address
+    data: z.string().startsWith("0x"),
+    value: z.string(),
+});
+
+type CallContractParams = z.infer<typeof callContractSchema>;
+
+type SendErc20Params = z.infer<typeof sendErc20Schema>;
 /**
  * Get all AgentKit actions
  */
@@ -105,7 +121,7 @@ export const tools = [
         name: "SEND_NATIVE_CURRENCY",
         description: "Deploy a new Safe",
         schema: sendNativeCurrencySchema, // Add schema to the tool definition
-        call: async (client: SafeClient, parameters: SendNativeCurrencyParams) => {
+        call: async (client: SafeClient, parameters: SendNativeCurrencyParams): Promise<SafeClientResult> => {
             // Parse and validate the parameters
             const validParams = sendNativeCurrencySchema.parse(parameters);
             
@@ -116,10 +132,49 @@ export const tools = [
                     data: "0x",
                 }]
             }
-            const safe = await client.send(tx);
-            return safe;
+            const result = await client.send(tx);
+            return result;
         },
     },
+    {
+        name: "SEND_ERC20",
+        description: "Send an ERC20 token",
+        schema: sendErc20Schema,
+        call: async (client: SafeClient, parameters: SendErc20Params): Promise<SafeClientResult> => {
+            const validParams = sendErc20Schema.parse(parameters);
+            const encodeDataErc20 = encodeFunctionData({
+                abi: erc20Abi,
+                functionName: "transfer",
+                args: [validParams.to as `0x${string}`, BigInt(validParams.value)],
+            });
+            const tx: SendTransactionProps = {
+                transactions: [{
+                    to: validParams.erc20Address,
+                    value: '0',
+                    data: encodeDataErc20,
+                }]
+            }
+            const result = await client.send(tx);
+            return result;
+        },
+    },
+    {
+        name: "CALL_CONTRACT",
+        description: "Call a contract, given a transaction object",
+        schema: callContractSchema,
+        call: async (client: SafeClient, parameters: CallContractParams): Promise<SafeClientResult> => {
+            const validParams = callContractSchema.parse(parameters);
+            const tx: SendTransactionProps = {
+                transactions: [{
+                    to: validParams.to,
+                    data: validParams.data,
+                    value: validParams.value,
+                }]
+            }
+            const result = await client.send(tx);
+            return result;
+        },
+    }
 ];
 
 async function executeToolAction(
@@ -137,10 +192,9 @@ async function executeToolAction(
 
 function composeParameterContext(tool: Tool, state: State): string {
     const contextTemplate = `{{recentMessages}}
-
-Given the recent messages, extract the following information for the action "${tool.name}":
-${tool.description}
-`;
+    Given the recent messages, extract the following information for the action "${tool.name}":
+    ${tool.description}
+    `;
     return composeContext({ state, template: contextTemplate });
 }
 
